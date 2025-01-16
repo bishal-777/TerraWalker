@@ -1,1 +1,1 @@
-# This folder contains the 3d models that will be 3d printed for our TerraWalker
+# This repo contains the programs and design files for 3d printing for our quadruped robot
