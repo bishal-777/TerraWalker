@@ -1,77 +1,94 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 
-Adafruit_PWMServoDriver pca9685 = Adafruit_PWMServoDriver();
+// Create an instance of the PCA9685 driver
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40); // Default I2C address
 
-#define SERVO_MIN 150
-#define SERVO_MAX 600
+// Servo configuration
+#define SERVOMIN 150 // Minimum pulse length count (adjust as needed)
+#define SERVOMAX 600 // Maximum pulse length count (adjust as needed)
 
-#define FRONT_LEFT_H  0  
-#define FRONT_LEFT_V  1  
-#define FRONT_RIGHT_H 2
-#define FRONT_RIGHT_V 3
-#define BACK_LEFT_H   4
-#define BACK_LEFT_V   5
-#define BACK_RIGHT_H  6
-#define BACK_RIGHT_V  7
-
-char command;  // Stores Bluetooth command
+// Define servo channels for each leg
+#define FRONT_LEFT_HIP 5
+#define FRONT_LEFT_KNEE 1
+#define FRONT_RIGHT_HIP 4
+#define FRONT_RIGHT_KNEE 0
+#define BACK_LEFT_HIP 7
+#define BACK_LEFT_KNEE 3
+#define BACK_RIGHT_HIP 6
+#define BACK_RIGHT_KNEE 2
 
 void setup() {
+
     // Serial.begin(9600);     // Serial Monitor (PC)
     // Serial1.begin(9600);    // Bluetooth HC-05 (TX1/RX1)
+  Serial.begin(9600);
+  Serial.println("Starting Quadpod Robot...");
+ f06fc1f (push)
 
-    pca9685.begin();
-    pca9685.setPWMFreq(50);
+  pwm.begin();            // Initialize PCA9685
+  pwm.setPWMFreq(50);     // Set frequency to 50 Hz for servos
+
+  // Initialize all servos to their default positions
+  setServoAngle(FRONT_LEFT_HIP, 90);
+  setServoAngle(FRONT_LEFT_KNEE, 90);
+  setServoAngle(FRONT_RIGHT_HIP, 90);
+  setServoAngle(FRONT_RIGHT_KNEE, 90);
+  setServoAngle(BACK_LEFT_HIP, 90);
+  setServoAngle(BACK_LEFT_KNEE, 90);
+  setServoAngle(BACK_RIGHT_HIP, 90);
+  setServoAngle(BACK_RIGHT_KNEE, 90);
+ // Allow servos to stabilize
 }
 
-void moveServo(int channel, int angle) {
-    int pulse = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
-    pca9685.setPWM(channel, 0, pulse);
+// Function to set servo angle
+void setServoAngle(uint8_t servoChannel, uint16_t angle) {
+  uint16_t pulseLength = map(angle, 0, 180, SERVOMIN, SERVOMAX);
+  pwm.setPWM(servoChannel, 0, pulseLength);
 }
 
-void moveLeg(int h_servo, int v_servo, int h_angle, int v_angle) {
-    moveServo(v_servo, v_angle);  
-    delay(300);
-    moveServo(h_servo, h_angle);  
-    delay(300);
-    moveServo(v_servo, 90);       
-    delay(300);
-}
-
-// Walking Forward
+// Simple walking sequence
 void walkForward() {
-    moveLeg(FRONT_LEFT_H, FRONT_LEFT_V, 120, 45);
-    moveLeg(BACK_RIGHT_H, BACK_RIGHT_V, 120, 45);
-    moveLeg(FRONT_RIGHT_H, FRONT_RIGHT_V, 120, 45);
-    moveLeg(BACK_LEFT_H, BACK_LEFT_V, 120, 45);
-}
+  // Step 1: Lift front-left and back-right legs
+  setServoAngle(FRONT_LEFT_KNEE, 60);  // Lift
+  setServoAngle(BACK_RIGHT_KNEE, 60);  // Lift
+  delay(300);
 
-// Walking Backward
-void walkBackward() {
-    moveLeg(FRONT_LEFT_H, FRONT_LEFT_V, 60, 45);  // Move backward
-    moveLeg(BACK_RIGHT_H, BACK_RIGHT_V, 60, 45);  // Move backward
-    moveLeg(FRONT_RIGHT_H, FRONT_RIGHT_V, 60, 45);  // Move backward
-    moveLeg(BACK_LEFT_H, BACK_LEFT_V, 60, 45);  // Move backward
-}
+  // Step 2: Move lifted legs forward
+  setServoAngle(FRONT_LEFT_HIP, 120); // Forward
+  setServoAngle(BACK_RIGHT_HIP, 60);  // Forward
+  delay(300);
 
-// Turning Left
-void turnLeft() {
-    moveLeg(FRONT_LEFT_H, FRONT_LEFT_V, 60, 45);
-    moveLeg(BACK_LEFT_H, BACK_LEFT_V, 60, 45);
-    moveLeg(FRONT_RIGHT_H, FRONT_RIGHT_V, 120, 45);
-    moveLeg(BACK_RIGHT_H, BACK_RIGHT_V, 120, 45);
-}
+  // Step 3: Lower lifted legs
+  setServoAngle(FRONT_LEFT_KNEE, 90); // Lower
+  setServoAngle(BACK_RIGHT_KNEE, 90); // Lower
+  delay(300);
 
-// Turning Right
-void turnRight() {
-    moveLeg(FRONT_RIGHT_H, FRONT_RIGHT_V, 60, 45);
-    moveLeg(BACK_RIGHT_H, BACK_RIGHT_V, 60, 45);
-    moveLeg(FRONT_LEFT_H, FRONT_LEFT_V, 120, 45);
-    moveLeg(BACK_LEFT_H, BACK_LEFT_V, 120, 45);
+  // Step 4: Lift front-right and back-left legs
+  setServoAngle(FRONT_RIGHT_KNEE, 60); // Lift
+  setServoAngle(BACK_LEFT_KNEE, 60);   // Lift
+  delay(300);
+
+  // Step 5: Move lifted legs forward
+  setServoAngle(FRONT_RIGHT_HIP, 120); // Forward
+  setServoAngle(BACK_LEFT_HIP, 60);    // Forward
+  delay(300);
+
+  // Step 6: Lower lifted legs
+  setServoAngle(FRONT_RIGHT_KNEE, 90); // Lower
+  setServoAngle(BACK_LEFT_KNEE, 90);   // Lower
+  delay(300);
+
+  // Step 7: Reset hip positions to neutral
+  setServoAngle(FRONT_LEFT_HIP, 90);
+  setServoAngle(BACK_RIGHT_HIP, 90);
+  setServoAngle(FRONT_RIGHT_HIP, 90);
+  setServoAngle(BACK_LEFT_HIP, 90);
+  delay(300);
 }
 
 void loop() {
+
     // if (Serial1.available()) {  // Check if Bluetooth sends data
     //     command = Serial1.read();  
     //     Serial.println(command);
@@ -89,4 +106,32 @@ void loop() {
         //     walkForward
     //     }
     // }
+
+  //walkForward(); // Call the walking sequence repeatedly
+  manufwd();
+
+}
+
+void manufwd()
+{
+  setServoAngle(BACK_RIGHT_KNEE,60);
+  setServoAngle(BACK_LEFT_KNEE,60);
+  delay(500);
+  setServoAngle(BACK_RIGHT_KNEE,150);
+  setServoAngle(BACK_LEFT_KNEE,150);
+  delay(500);
+  /*
+  setServoAngle(FRONT_LEFT_KNEE,150);
+  setServoAngle(FRONT_LEFT_HIP,60);
+  setServoAngle(FRONT_LEFT_KNEE,90);
+  setServoAngle(BACK_RIGHT_KNEE,150);
+  setServoAngle(BACK_RIGHT_HIP,150);
+  setServoAngle(BACK_RIGHT_KNEE,90);
+  setServoAngle(FRONT_RIGHT_KNEE,150);
+  setServoAngle(FRONT_RIGHT_HIP,150);
+  setServoAngle(FRONT_RIGHT_KNEE,90);
+  setServoAngle(BACK_LEFT_KNEE,150);
+  setServoAngle(BACK_LEFT_HIP,150);
+  setServoAngle(BACK_LEFT_KNEE,90);
+*/
 }
